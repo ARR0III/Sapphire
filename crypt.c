@@ -1,7 +1,11 @@
+/*
+  Plexus Technology Cybernetic Laboratories 2010 - 2022;
+  Polyalphabetic substitution cipher "Sapphire";
+*/
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-
 #include <string.h>
 
 #define ENCRYPT 1
@@ -15,7 +19,8 @@ typedef struct {
   uint8_t mix [BUFFER_SIZE * 6];
 } CRYPT_CTX;
 
-uint32_t temp = 0;
+uint32_t gamma = 0;
+uint32_t temp  = 0;
 uint32_t n = 0;
 
 void init(uint8_t * key, size_t klen) {
@@ -26,15 +31,7 @@ void init(uint8_t * key, size_t klen) {
   }
 }
 
-int ascii(int c) {
-  if ((c >= 0x00 && c <= 0x1F) || (c == 0x7F)) {
-    return -1;
-  }
-
-  return c;
-}
-
-int punisher(uint8_t * in, uint8_t * out, size_t ilen) {
+int enmix(uint8_t * in, uint8_t * out, size_t ilen) {
   size_t i, j;
  
   for (i = 0, j = 0; i < ilen; ++i) {
@@ -69,29 +66,37 @@ int punisher(uint8_t * in, uint8_t * out, size_t ilen) {
   return j;
 }
 
-void crypt(uint8_t * data, uint8_t * key, size_t dlen, size_t klen, int tumbler) {
+void crypt(uint8_t * data, uint8_t * key, uint32_t dlen, uint32_t klen, int tumbler) {
   if (NULL == data || NULL == key || 0 == dlen || 0 == klen)
     return;
 
-  size_t i;
+  uint32_t i;
 
   for (i = 0; i < dlen; ++i) {
-    if (data[i] >= 'a' && data[i] <= 'z')
+    if (data[i] >= 'a' && data[i] <= 'z') {
       data[i] -= 32;
+    }
 
     if (data[i] >= 'A' && data[i] <= 'Z') {
 
-      temp += key[i    % klen];
-      temp += key[temp % klen];
-
-      temp += (i + 1);
+      temp += key[gamma % klen];
+      temp += key[temp  % klen];
+      
+      temp += (gamma + 1);
 
       temp  = (temp % 26) + 'A';
+
+      if (gamma == 0xFFFFFFFF) {
+        gamma = 0;
+      }
+
+      gamma++;
 
       if (ENCRYPT == tumbler)
         data[i] = ((data[i]  + temp) % 26) + 'A';
       else
         data[i] = (((data[i] - temp) + 26) % 26) + 'A';
+
     }
   }
 }
@@ -161,16 +166,15 @@ int main(int argc, char * argv[]) {
   while (1) {
     read = fread(ctx->data, 1, BUFFER_SIZE, fi);
 
-    if (ENCRYPT == tumbler)
-      ret_s = punisher(ctx->data, ctx->mix, read);
+    if (ENCRYPT == tumbler) {
+      ret_s = enmix(ctx->data, ctx->mix, read);
+    }
 
-    crypt(tumbler ? ctx->mix : ctx->data,
-          ctx->key,
-          tumbler ? ret_s     : read,
-          klen, tumbler);
+    crypt(tumbler ? ctx->mix : ctx->data, ctx->key,
+          tumbler ? ret_s    : read, klen, tumbler);
     
     if (fwrite(tumbler ? ctx->mix : ctx->data, 1,
-               tumbler ? read     : ret_s, fo) != tumbler ? read : ret_s) {
+               tumbler ?  ret_s   : read, fo) != (tumbler ? ret_s : read)) {
       
       printf("error writing in output stream!\n");
       break;
