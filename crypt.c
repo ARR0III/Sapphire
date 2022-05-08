@@ -89,8 +89,9 @@ void crypt(uint8_t * data, uint8_t * key, uint32_t dlen, uint32_t klen, int tumb
       if (gamma == 0xFFFFFFFF) {
         gamma = 0;
       }
-
-      gamma++;
+      else {
+        gamma++;
+      }
 
       if (ENCRYPT == tumbler)
         data[i] = ((data[i]  + temp) % 26) + 'A';
