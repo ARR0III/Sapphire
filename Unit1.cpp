@@ -62,7 +62,7 @@ int enmix(uint8_t * in, uint8_t * out, size_t ilen, bool format) {
         ++j;
       }
 
-      if (30 == n) {
+      if (50 == n) {
         out[j] = '\n';
         ++j;
         n = 0;
@@ -185,19 +185,33 @@ int text_crypt(int tumbler, bool format) {
   return 0;
 }
 
+void tumblers_init(void) {
+  if (Form1->Edit1->Text != "") {
+    gamma = atol(Form1->Edit1->Text.c_str());
+  }
+
+  if (Form1->Edit2->Text != "") {
+    temp = atol(Form1->Edit2->Text.c_str());
+  }
+}
+
 //---------------------------------------------------------------------------
 void __fastcall TForm1::FormClose(TObject *Sender, TCloseAction &Action)
 {
-  free(ctx);        
+  if (ctx != NULL)
+    free(ctx);        
 }
 //---------------------------------------------------------------------------
 void __fastcall TForm1::FormDestroy(TObject *Sender)
 {
-  free(ctx);         
+  if (ctx != NULL)
+    free(ctx);          
 }
 //---------------------------------------------------------------------------
 void __fastcall TForm1::Button1Click(TObject *Sender)
 {
+  tumblers_init();
+
   if (Form1->XOR->Checked == True) {
     text_crypt(1, false);
   }
@@ -208,6 +222,8 @@ void __fastcall TForm1::Button1Click(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TForm1::Button2Click(TObject *Sender)
 {
+  tumblers_init();
+
   if (Form1->Sapphire->Checked == True) {
     text_crypt(0, true);
   }
@@ -227,5 +243,6 @@ void __fastcall TForm1::Button4Click(TObject *Sender)
  Form1->Memo3->Clear();          
 }
 //---------------------------------------------------------------------------
+
 
 

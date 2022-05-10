@@ -23,6 +23,10 @@ __published:	// IDE-managed Components
         TButton *Button4;
         TRadioButton *XOR;
         TRadioButton *Sapphire;
+        TEdit *Edit1;
+        TEdit *Edit2;
+        TLabel *Label4;
+        TLabel *Label5;
         void __fastcall FormCreate(TObject *Sender);
         void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
         void __fastcall FormDestroy(TObject *Sender);
