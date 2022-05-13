@@ -7,6 +7,7 @@
 #include <Controls.hpp>
 #include <StdCtrls.hpp>
 #include <Forms.hpp>
+#include <ComCtrls.hpp>
 //---------------------------------------------------------------------------
 class TForm1 : public TForm
 {
@@ -27,6 +28,7 @@ __published:	// IDE-managed Components
         TEdit *Edit2;
         TLabel *Label4;
         TLabel *Label5;
+        TProgressBar *ProgressBar1;
         void __fastcall FormCreate(TObject *Sender);
         void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
         void __fastcall FormDestroy(TObject *Sender);

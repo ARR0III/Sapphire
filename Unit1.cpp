@@ -18,8 +18,8 @@
 
 typedef struct {
   uint8_t key [BUFFER_SIZE];
-  uint8_t data[BUFFER_SIZE];
-  uint8_t mix [BUFFER_SIZE * 3];
+  uint8_t data[BUFFER_SIZE + 1];
+  uint8_t mix [BUFFER_SIZE * 4];
 } CRYPT_CTX;
 
 uint32_t gamma = 0;
@@ -30,10 +30,10 @@ TForm1 *Form1;
 CRYPT_CTX * ctx = NULL;
 
 void init(uint8_t * key, size_t klen) {
-  size_t i;
+  uint32_t i;
 
   for (i = 0; i < klen; ++i) {
-    temp += key[i] * (i + 1);
+    temp += ((uint32_t)key[i]) * (i + 1);
   }
 }
 
@@ -56,27 +56,25 @@ int enmix(uint8_t * in, uint8_t * out, size_t ilen, bool format) {
       continue;
     }
 
-    if (format == true) {
-      if (0 == (n % 5)) {
+    if (true == format) {
+      if (0 == (n % 6)) {
         out[j] = ' ';
         ++j;
       }
 
-      if (50 == n) {
-        out[j] = '\n';
-        ++j;
+      if (54 == n) {
+        out[j]     = 0x0D;
+        out[j + 1] = 0x0A;
+        j += 2;
         n = 0;
       }
     }
   }
-
-  if (format == true)
-    out[j] = '\n';
-    
   return j;
 }
 
-void crypt(uint8_t * data, uint8_t * key, uint32_t dlen, uint32_t klen, int tumbler) {
+void crypt(uint8_t * data, uint8_t * key,
+           uint32_t dlen, uint32_t klen, int tumbler) {
   if (NULL == data || NULL == key || 0 == dlen || 0 == klen)
     return;
 
@@ -101,7 +99,6 @@ void crypt(uint8_t * data, uint8_t * key, uint32_t dlen, uint32_t klen, int tumb
         data[i] = ((data[i]  + temp) % 26) + 'A';
       else
         data[i] = (((data[i] - temp) + 26) % 26) + 'A';
-
     }
   }
 }
@@ -124,20 +121,44 @@ void __fastcall TForm1::FormCreate(TObject *Sender)
 }
 
 int text_crypt(int tumbler, bool format) {
-  int ret_s = 0;
-  int position = 0;
-  int real = 0;
+
+  uint8_t * memory = NULL;
+
+  int ret_s           = 0;
+  int memory_position = 0;
+  int position        = 0;
+  int real            = 0;
 
   int klen = strlen(Form1->Memo1->Text.c_str());
   int dlen = strlen(Form1->Memo2->Text.c_str());
 
+  memory = (uint8_t *)malloc(dlen * 4);
+
+  if (memory == NULL) {
+    ShowMessage("Не удалось выделить память!");
+    return -2;
+  }
+
+  short real_percent = 0;
+  short past_percent = 0;
+  
+  float div = (float)(dlen) / 100.0;
+
+  Form1->ProgressBar1->Min = 0;
+  Form1->ProgressBar1->Max = 100;
+
+  ctx->data[BUFFER_SIZE] = 0x00;
+  ctx->mix [BUFFER_SIZE * 4] = 0x00;
+
   if (Form1->Memo1->Text == "") {
     ShowMessage("Ключ не введен!");
+    free(memory);
     return -1;
   }
 
   if (Form1->Memo2->Text == "") {
     ShowMessage("Текст не введен!");
+    free(memory);
     return -1;
   }
 
@@ -156,8 +177,6 @@ int text_crypt(int tumbler, bool format) {
 
     memcpy(ctx->data, Form1->Memo2->Text.c_str() + position, real);
 
-    position += real;
-
     if (tumbler) {
       ret_s = enmix(ctx->data, ctx->mix, real, format);
     }
@@ -165,18 +184,32 @@ int text_crypt(int tumbler, bool format) {
     crypt(tumbler ? ctx->mix : ctx->data, ctx->key,
           tumbler ? ret_s    : real, klen, tumbler);
 
-    if (dlen < BUFFER_SIZE) {
-      ctx->data[real]  = 0x00;
-      ctx->mix [ret_s] = 0x00;
-    }
+    memcpy(memory + memory_position,
+           tumbler ? ctx->mix : ctx->data,
+           tumbler ? ret_s    : real);
 
-    Form1->Memo3->Text =
-      Form1->Memo3->Text + AnsiString((char *)(tumbler ? ctx->mix : ctx->data));
+    memory_position += (tumbler ? ret_s : real);
 
+    memory[memory_position] = 0x00;
+
+    position += real;
     dlen -= real;
+
+    real_percent = (short)((float)position / div + 0.1);
+
+    if (real_percent > past_percent) {
+      Form1->ProgressBar1->Position = real_percent;
+      past_percent = real_percent;
+      Application->ProcessMessages();
+    }
   }
 
+  Form1->Memo3->Text = AnsiString((char *)memory);
+  Application->ProcessMessages();
+
   memset(ctx, 0x00, sizeof(CRYPT_CTX));
+
+  free(memory);
 
   temp  = 0;
   gamma = 0;
@@ -187,11 +220,11 @@ int text_crypt(int tumbler, bool format) {
 
 void tumblers_init(void) {
   if (Form1->Edit1->Text != "") {
-    gamma = atol(Form1->Edit1->Text.c_str());
+    gamma += atol(Form1->Edit1->Text.c_str());
   }
 
   if (Form1->Edit2->Text != "") {
-    temp = atol(Form1->Edit2->Text.c_str());
+    temp  += atol(Form1->Edit2->Text.c_str());
   }
 }
 
