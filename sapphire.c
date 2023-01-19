@@ -2,7 +2,7 @@
   Plexus Technology Cybernetic Laboratories 2010 - 2022;
   Polyalphabetic substitution cipher "Sapphire";
 
-  keys 94^2048
+  keys 26^2048
 */
 
 #include <stdio.h>
